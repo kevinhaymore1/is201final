@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL 14-Team Playoff Simulator</title>
+    <style>
+        /* ==================================== */
+        /* BASE & CONTAINER STYLING (EXISTING)  */
+        /* ==================================== */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0; 
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto; 
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2, h3 {
+            color: #013369; /* NFL Blue */
+            text-align: center;
+        }
+        
+        #newSeasonButton {
+            display: block;
+            width: 80%;
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 15px;
+            font-size: 1.2em;
+            background-color: #d50a0a; /* NFL Red */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        
+        #newSeasonButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #newSeasonButton:hover:not(:disabled) {
+            background-color: #a70808;
+            transform: translateY(-2px);
+        }
+
+        /* Canvas for Bouncing Logos */
+        #gameCanvas {
+            border: 2px solid #013369;
+            display: block;
+            margin: 20px auto;
+            background: #eef;
+            border-radius: 8px;
+        }
+
+        /* Playoff Table Styling */
+        #playoffTeamsTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        #playoffTeamsTable th, #playoffTeamsTable td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        #playoffTeamsTable th {
+            background-color: #013369;
+            color: white;
+            font-size: 1.1em;
+        }
+
+        #playoffTeamsTable tr:nth-child(even) {
+            background-color: #f4f4f4;
+        }
+
+        /* Playoff Bracket Styling */
+        #bracket {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .round {
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        .matchup {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+
+        .winner {
+            font-weight: bold;
+            color: #d50a0a;
+            background-color: #fffacd;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        #superBowlWinner {
+            font-size: 2.5em;
+            color: gold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin: 20px 0;
+            background-color: #013369;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        /* Scoreboard */
+        #scoreBoard {
+            text-align: center;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #013369;
+            border-radius: 8px;
+            background-color: #e6f0ff;
+        }
+        
+        #scoreBoard table {
+            width: 80%;
+            margin: 10px auto;
+        }
+
+        /* ==================================== */
+        /* NAVBAR STYLING (PREVIOUSLY FIXED)    */
+        /* ==================================== */
+        nav {
+            background-color: #013369; /* NFL Blue */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0;
+        }
+        
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex; 
+            justify-content: center; 
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        nav ul li {
+            margin: 0;
+        }
+
+        nav ul li a {
+            display: block; 
+            padding: 15px 20px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            font-size: 1.05em;
+            transition: background-color 0.3s;
+        }
+
+        nav ul li a:hover {
+            background-color: #d50a0a; /* NFL Red on hover */
+            color: white;
+        }
+        
+        nav ul li:last-child a { 
+             border-bottom: 3px solid gold; 
+        }
+    </style>
+</head>
+<nav>
+    <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
+        <li class="nav-item"><a class="nav-link" href="scratch.html">NFL Predictions</a></li>
+    </ul>    
+</nav>
+<body>
+
+    <div class="container">
+        <h1>🏆 NFL 14-Team Playoff Simulator</h1>
+        <p style="text-align: center;">Press the button to run a new, fully randomized NFL season and playoff simulation!</p>
+
+        <button id="newSeasonButton">Start New Season & Playoff Visuals!</button>
+
+        <hr>
+
+        <h2>🏈 Playoff Teams (The Elite 14)</h2>
+        <table id="playoffTeamsTable"></table>
+
+        <hr>
+        
+        <h2>💥 Visual Playoff Fight</h2>
+        <p id="canvasStatus" style="text-align: center; font-weight: bold;">Click "Start New Season" to begin the visual fight!</p>
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+        <hr>
+
+        <h2>🗓️ Playoff Bracket Results</h2>
+        <div id="bracket">
+        </div>
+
+        <h2 style="margin-top: 30px;">🥇 Super Bowl Champion</h2>
+        <div id="superBowlWinner">... Awaiting Champion ...</div>
+
+        <hr>
+
+        <h2>🏅 Running Super Bowl Champion Score</h2>
+        <div id="scoreBoard">
+            <p><strong>Total Seasons Simulated:</strong> <span id="seasonCount">0</span></p>
+            <table>
+                <thead>
+                    <tr><th>Team</th><th>Wins</th></tr>
+                </thead>
+                <tbody id="championsList">
+                    <tr><td colspan="2">No champions yet...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // JAVASCRIPT LOGIC
+        
+        // 1. HARDCODED NFL TEAM DATA
+        const NFL_TEAMS = [
+            { name: "Buffalo Bills", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/7/77/Buffalo_Bills_logo.svg' },
+            { name: "Miami Dolphins", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/3/37/Miami_Dolphins_logo.svg' },
+            { name: "New England Patriots", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/b/b9/New_England_Patriots_logo.svg' },
+            { name: "New York Jets", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/6/6b/New_York_Jets_logo.svg' },
+            { name: "Baltimore Ravens", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/1/16/Baltimore_Ravens_logo.svg' },
+            { name: "Cincinnati Bengals", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/8/81/Cincinnati_Bengals_logo.svg' },
+            { name: "Cleveland Browns", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/d/d4/Cleveland_Browns_logo.svg' },
+            { name: "Pittsburgh Steelers", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/d/de/Pittsburgh_Steelers_logo.svg' },
+            { name: "Houston Texans", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/2/28/Houston_Texans_logo.svg' },
+            { name: "Indianapolis Colts", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/0/00/Indianapolis_Colts_logo.svg' },
+            { name: "Jacksonville Jaguars", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/7/70/Jacksonville_Jaguars_logo.svg' },
+            { name: "Tennessee Titans", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/c/c1/Tennessee_Titans_logo.svg' },
+            { name: "Denver Broncos", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/7/76/Denver_Broncos_logo.svg' },
+            { name: "Kansas City Chiefs", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/e/e1/Kansas_City_Chiefs_logo.svg' },
+            { name: "Dallas Cowboys", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/3/36/Dallas_Cowboys_logo.svg' },
+            { name: "New York Giants", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b8/New_York_Giants_logo.svg' },
+            { name: "Philadelphia Eagles", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/8/8e/Philadelphia_Eagles_logo.svg' },
+            { name: "Washington Commanders", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/6/63/Washington_Commanders_logo.svg' },
+            { name: "Chicago Bears", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Chicago_Bears_logo.svg' },
+            { name: "Detroit Lions", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/7/77/Detroit_Lions_logo.svg' },
+            { name: "Green Bay Packers", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Green_Bay_Packers_logo.svg' },
+            { name: "Minnesota Vikings", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/4/4c/Minnesota_Vikings_logo.svg' },
+            { name: "Atlanta Falcons", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/c/c5/Atlanta_Falcons_logo.svg' },
+            { name: "Carolina Panthers", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/7/77/Carolina_Panthers_logo_2012.svg' },
+            { name: "New Orleans Saints", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/5/50/New_Orleans_Saints_logo.svg' },
+            { name: "Tampa Bay Buccaneers", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/a/ae/Tampa_Bay_Buccaneers_logo.svg' },
+            { name: "Arizona Cardinals", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/7/7b/Arizona_Cardinals_logo.svg' },
+            { name: "Los Angeles Rams", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/8/89/Los_Angeles_Rams_logo.svg' },
+            { name: "San Francisco 49ers", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/San_Francisco_49ers_logo.svg' },
+            { name: "Seattle Seahawks", conf: "NFC", logo: 'https://upload.wikimedia.org/wikipedia/en/8/88/Seattle_Seahawks_logo.svg' },
+            { name: "Las Vegas Raiders", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/f/fa/Las_Vegas_Raiders_logo.svg' },
+            { name: "Los Angeles Chargers", conf: "AFC", logo: 'https://upload.wikimedia.org/wikipedia/en/a/aa/Los_Angeles_Chargers_logo.svg' }
+        ];
+
+        // Map for quick logo lookup (preloaded logos)
+        const TEAM_LOGO_MAP = new Map();
+
+        // Global State Variables (Initialized in DOMContentLoaded)
+        let superBowlChampions = {};
+        let totalSeasons = 0;
+        let simulator = null; 
+
+        // --- Logo Preloader Function ---
+        function preloadLogos() {
+            const promises = NFL_TEAMS.map(team => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.crossOrigin = "Anonymous";
+                    img.onload = () => {
+                        TEAM_LOGO_MAP.set(team.name, img);
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        console.warn(`Failed to load image for ${team.name}.`);
+                        TEAM_LOGO_MAP.set(team.name, null); // Store null for failed loads
+                        resolve(); // Resolve even on error to continue loading others
+                    };
+                    img.src = team.logo;
+                });
+            });
+            return Promise.all(promises);
+        }
+
+        // --- Core Game Logic Functions ---
+
+        const shuffleArray = (array) => {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        };
+
+        function selectPlayoffTeams(conf) {
+            const conferenceTeams = NFL_TEAMS.filter(t => t.conf === conf);
+            const shuffledTeams = shuffleArray([...conferenceTeams]);
+            const playoffTeams = shuffledTeams.slice(0, 7);
+            const seeds = shuffleArray([1, 2, 3, 4, 5, 6, 7]);
+
+            const seededPlayoffs = playoffTeams.map((team, index) => ({
+                ...team,
+                seed: seeds[index],
+                id: team.name, 
+                eliminated: false,
+                color: conf === 'AFC' ? '#0087dc' : '#d50a0a', 
+                originalSeed: seeds[index]
+            }));
+            return seededPlayoffs.sort((a, b) => a.seed - b.seed);
+        }
+
+        function simulateGame(teamA, teamB) {
+            // Random winner selection
+            const winner = Math.random() < 0.5 ? teamA : teamB;
+            const loser = winner === teamA ? teamB : teamA;
+            return { winner, loser, matchup: `${teamA.name} vs ${teamB.name}` };
+        }
+
+        function simulateConferencePlayoffs(teams) {
+            const rounds = [];
+            let currentTeams = teams;
+            
+            // --- Wild Card Round (WC) ---
+            const roundWC = { name: "Wild Card Round", winners: [], losers: [], matchups: [] };
+            const byeTeam = currentTeams.find(t => t.seed === 1);
+            if (byeTeam) roundWC.winners.push(byeTeam);
+
+            const wcMatchups = [
+                [currentTeams.find(t => t.seed === 2), currentTeams.find(t => t.seed === 7)],
+                [currentTeams.find(t => t.seed === 3), currentTeams.find(t => t.seed === 6)],
+                [currentTeams.find(t => t.seed === 4), currentTeams.find(t => t.seed === 5)],
+            ].filter(m => m[0] && m[1]); // Filter out any incomplete matchups
+
+            wcMatchups.forEach(match => {
+                const result = simulateGame(match[0], match[1]);
+                roundWC.winners.push(result.winner);
+                roundWC.losers.push(result.loser);
+                roundWC.matchups.push(`(#${match[0].seed}) ${match[0].name} vs (#${match[1].seed}) ${match[1].name} (Winner: ${result.winner.name})`);
+            });
+            rounds.push(roundWC);
+            
+            // --- Divisional Round (Div) ---
+            const roundDiv = { name: "Divisional Round", winners: [], losers: [], matchups: [] };
+            let divisionalTeams = roundWC.winners.sort((a, b) => a.seed - b.seed);
+            
+            if (divisionalTeams.length !== 4) return { champion: divisionalTeams[0], rounds }; // Safety check
+
+            // Re-seed logic for divisional round: 1 vs Lowest, Highest remaining vs Next Lowest
+            const seed1 = divisionalTeams[0]; 
+            const remainingWinners = divisionalTeams.slice(1);
+            
+            // Find lowest seed among 2, 3, 4 winners (Highest seed number)
+            const lowestSeed = remainingWinners.reduce((min, team) => team.seed > min.seed ? min : team);
+            const match2Teams = remainingWinners.filter(t => t.name !== lowestSeed.name);
+            
+            const divMatchup1 = simulateGame(seed1, lowestSeed);
+            roundDiv.winners.push(divMatchup1.winner);
+            roundDiv.losers.push(divMatchup1.loser);
+            roundDiv.matchups.push(`(#${seed1.originalSeed}) ${seed1.name} vs (#${lowestSeed.originalSeed}) ${lowestSeed.name} (Winner: ${divMatchup1.winner.name})`);
+            
+            const divMatchup2 = simulateGame(match2Teams[0], match2Teams[1]);
+            roundDiv.winners.push(divMatchup2.winner);
+            roundDiv.losers.push(divMatchup2.loser);
+            roundDiv.matchups.push(`(#${match2Teams[0].originalSeed}) ${match2Teams[0].name} vs (#${match2Teams[1].originalSeed}) ${match2Teams[1].name} (Winner: ${divMatchup2.winner.name})`);
+            
+            rounds.push(roundDiv);
+
+            // --- Conference Championship (Conf) ---
+            const roundConf = { name: `${teams[0].conf} Championship`, winners: [], losers: [], matchups: [] };
+            if (roundDiv.winners.length !== 2) return { champion: roundDiv.winners[0], rounds }; // Safety check
+            
+            // Higher seed hosts (Lower seed number)
+            const team1 = roundDiv.winners.sort((a, b) => a.seed - b.seed)[0];
+            const team2 = roundDiv.winners.sort((a, b) => a.seed - b.seed)[1];
+
+            const confMatchup = simulateGame(team1, team2);
+            roundConf.winners.push(confMatchup.winner);
+            roundConf.losers.push(confMatchup.loser);
+            confMatchup.winner.color = team1.conf === 'AFC' ? 'red' : 'blue'; // Visual highlight
+            roundConf.matchups.push(`(#${team1.originalSeed}) ${team1.name} vs (#${team2.originalSeed}) ${team2.name} (Winner: ${confMatchup.winner.name})`);
+
+            rounds.push(roundConf);
+
+            return { champion: roundConf.winners[0], rounds };
+        }
+
+        function trackChampion(teamName) {
+            totalSeasons++;
+            if (superBowlChampions[teamName]) {
+                superBowlChampions[teamName]++;
+            } else {
+                superBowlChampions[teamName] = 1;
+            }
+            
+            // PERSIST SCORES ACROSS SESSION
+            localStorage.setItem('superBowlChampions', JSON.stringify(superBowlChampions));
+            localStorage.setItem('totalSeasons', totalSeasons);
+            
+            renderScoreBoard();
+        }
+
+        // --- Rendering/Display Functions ---
+
+        function renderPlayoffTable(afcTeams, nfcTeams) {
+            const table = document.getElementById('playoffTeamsTable');
+            table.innerHTML = `
+                <thead>
+                    <tr><th colspan="2">AFC Playoff Teams</th><th colspan="2">NFC Playoff Teams</th></tr>
+                    <tr><th>Seed</th><th>Team</th><th>Seed</th><th>Team</th></tr>
+                </thead>
+                <tbody>
+                </tbody>
+            `;
+            const tbody = table.querySelector('tbody');
+            const maxTeams = 7;
+
+            for (let i = 0; i < maxTeams; i++) {
+                const afcTeam = afcTeams[i];
+                const nfcTeam = nfcTeams[i];
+                
+                const row = tbody.insertRow();
+                
+                let cell1 = row.insertCell();
+                cell1.innerHTML = `#${afcTeam.seed}`;
+                
+                let cell2 = row.insertCell();
+                cell2.innerHTML = `${afcTeam.name}`;
+                
+                let cell3 = row.insertCell();
+                cell3.innerHTML = `#${nfcTeam.seed}`;
+
+                let cell4 = row.insertCell();
+                cell4.innerHTML = `${nfcTeam.name}`;
+            }
+        }
+
+        function renderBracket(afcRounds, nfcRounds, superBowlWinner) {
+            const bracketDiv = document.getElementById('bracket');
+            bracketDiv.innerHTML = `
+                <div class="round" id="afcBracket">
+                    <h3>AFC Playoff Games</h3>
+                </div>
+                <div class="round" id="nfcBracket">
+                    <h3>NFC Playoff Games</h3>
+                </div>
+            `;
+
+            const renderRound = (containerId, rounds) => {
+                const container = document.getElementById(containerId);
+                rounds.forEach(round => {
+                    const roundDiv = document.createElement('div');
+                    roundDiv.className = 'round-results';
+                    roundDiv.innerHTML = `<h4>${round.name}</h4>`;
+                    
+                    // Add bye team explicitly for Wild Card
+                    if (round.name === 'Wild Card Round' && round.winners.length === 4) {
+                        const byeTeam = round.winners.find(w => !round.matchups.some(m => m.includes(w.name)));
+                        if (byeTeam) {
+                             roundDiv.innerHTML += `<div class="matchup winner">#1 Seed BYE: ${byeTeam.name}</div>`;
+                        }
+                    }
+                    
+                    round.matchups.forEach(matchup => {
+                        roundDiv.innerHTML += `<div class="matchup">${matchup}</div>`;
+                    });
+                    container.appendChild(roundDiv);
+                });
+            };
+
+            renderRound('afcBracket', afcRounds);
+            renderRound('nfcBracket', nfcRounds);
+            
+            document.getElementById('superBowlWinner').innerHTML = `
+                <span id="superBowlChampionName" class="winner">${superBowlWinner.name}</span>
+            `;
+        }
+        
+        function renderScoreBoard() {
+            const list = document.getElementById('championsList');
+            const sortedChampions = Object.entries(superBowlChampions)
+                .sort(([, a], [, b]) => b - a); 
+
+            document.getElementById('seasonCount').textContent = totalSeasons;
+
+            if (sortedChampions.length === 0) {
+                list.innerHTML = `<tr><td colspan="2">No champions yet...</td></tr>`;
+                return;
+            }
+
+            list.innerHTML = sortedChampions.map(([team, wins]) => `
+                <tr><td>${team}</td><td>${wins}</td></tr>
+            `).join('');
+        }
+
+
+        // 4. CANVAS VISUAL SIMULATION LOGIC
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height;
+        const BALL_RADIUS = 28; 
+
+        function resolveCollision(ball1, ball2, simulator) {
+            const dx = ball2.x - ball1.x;
+            const dy = ball2.y - ball1.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < ball1.radius + ball2.radius) {
+                // 1. Check for Elimination Trigger 
+                if (!ball1.eliminated && !ball2.eliminated) {
+                    const id1 = ball1.id;
+                    const id2 = ball2.id;
+                    
+                    const is1Loser = simulator.losersToEliminate.includes(id1);
+                    const is2Loser = simulator.losersToEliminate.includes(id2);
+                    
+                    if (is1Loser && !is2Loser) {
+                        ball1.eliminated = true;
+                        simulator.losersToEliminate = simulator.losersToEliminate.filter(id => id !== id1);
+                    } else if (is2Loser && !is1Loser) {
+                        ball2.eliminated = true;
+                        simulator.losersToEliminate = simulator.losersToEliminate.filter(id => id !== id2);
+                    } else if (is1Loser && is2Loser) {
+                        // If two losers collide, eliminate one (arbitrarily ball1)
+                        ball1.eliminated = true;
+                        simulator.losersToEliminate = simulator.losersToEliminate.filter(id => id !== id1);
+                    }
+                }
+
+                // 2. Separate balls to prevent sticking
+                const overlap = ball1.radius + ball2.radius - distance;
+                const adjustX = (overlap / distance) * dx * 0.5;
+                const adjustY = (overlap / distance) * dy * 0.5;
+                
+                ball1.x -= adjustX;
+                ball1.y -= adjustY;
+                ball2.x += adjustX;
+                ball2.y += adjustY;
+            }
+        }
+
+        class Ball {
+            constructor(team) {
+                this.id = team.id;
+                this.name = team.name;
+                this.originalColor = team.color;
+                this.color = team.color;
+                
+                // Use the preloaded Image object from the map
+                this.logo = TEAM_LOGO_MAP.get(team.name);
+                this.logoLoaded = !!this.logo;
+                
+                this.x = Math.random() * (CANVAS_WIDTH - 2 * BALL_RADIUS) + BALL_RADIUS;
+                this.y = Math.random() * (CANVAS_HEIGHT - 2 * BALL_RADIUS) + BALL_RADIUS;
+                
+                this.dx = (Math.random() - 0.5) * 6; 
+                this.dy = (Math.random() - 0.5) * 6;
+                
+                this.radius = BALL_RADIUS;
+                this.eliminated = false;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.closePath();
+                
+                if (this.logoLoaded && this.logo.complete) {
+                    // Draw the preloaded image
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.clip(); 
+                    ctx.drawImage(this.logo, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+                    ctx.restore();
+                } else {
+                    // Fallback to team initials 
+                    ctx.fillStyle = this.originalColor; 
+                    ctx.font = 'bold 16px Arial'; 
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.name.substring(0, 3).toUpperCase(), this.x, this.y + 6);
+                }
+            }
+
+            update() {
+                // Boundary check and bounce
+                if (this.x + this.radius > CANVAS_WIDTH || this.x - this.radius < 0) {
+                    this.dx = -this.dx;
+                }
+                if (this.y + this.radius > CANVAS_HEIGHT || this.y - this.radius < 0) {
+                    this.dy = -this.dy;
+                }
+                this.x += this.dx;
+                this.y += this.dy;
+
+                // Ball only shrinks if it has been marked as eliminated
+                if (this.eliminated) {
+                    this.radius = Math.max(0, this.radius - 0.5); 
+                    this.dx *= 0.95; // Slow down
+                    this.dy *= 0.95;
+                    this.color = 'gray'; 
+                }
+            }
+        }
+
+        class CanvasSimulator {
+            constructor(allTeams, bracketResults) {
+                this.teams = allTeams;
+                this.bracket = bracketResults;
+                this.balls = this.teams.map(team => new Ball(team));
+                this.animationId = null;
+                this.currentRoundIndex = -1;
+                this.losersToEliminate = []; 
+                this.isAnimating = false;
+                this.roundActive = false;
+                this.eliminationDelay = 1000; 
+                this.startTime = null;
+                this.simulationDuration = 30000; // 30 seconds
+                this.timeoutId = null;
+            }
+
+            start() {
+                this.stop();
+                this.isAnimating = true;
+                // Re-create balls to reset positions and state
+                this.balls = this.teams.map(team => new Ball(team)); 
+                this.currentRoundIndex = -1; 
+                this.losersToEliminate = []; 
+                this.roundActive = false;
+                this.startTime = Date.now();
+
+                // Set the 30-second hard stop timer
+                this.timeoutId = setTimeout(() => this.hardStopSimulation(), this.simulationDuration);
+
+                this.animate();
+                setTimeout(() => this.processNextRound(), 500); 
+            }
+
+            stop() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                if (this.timeoutId) {
+                    clearTimeout(this.timeoutId);
+                }
+                this.isAnimating = false;
+            }
+
+            updateStatus(message) {
+                document.getElementById('canvasStatus').textContent = message;
+            }
+            
+            hardStopSimulation() {
+                if (!this.isAnimating) return; 
+
+                this.updateStatus(`TIME OUT! Finalizing championship winner...`);
+                
+                // Identify the final winner ID
+                const winnerId = this.bracket.superBowl.winner.id;
+                let winnerBall = null;
+
+                // Eliminate all balls that are not the defined final winner
+                this.balls.forEach(ball => {
+                    if (ball.id === winnerId) {
+                        winnerBall = ball;
+                    } else if (!ball.eliminated) {
+                        ball.eliminated = true;
+                    }
+                });
+
+                // Final step: Highlight and center the champion
+                if (winnerBall) {
+                    winnerBall.color = 'gold'; 
+                    winnerBall.dx = 0;
+                    winnerBall.dy = 0;
+                    winnerBall.x = CANVAS_WIDTH / 2;
+                    winnerBall.y = CANVAS_HEIGHT / 2;
+                    winnerBall.radius = BALL_RADIUS * 1.5;
+                }
+
+                this.updateStatus(`SEASON COMPLETE! Champion: ${this.bracket.superBowl.winner.name} (30 seconds elapsed)`);
+                setTimeout(() => this.stop(), 3000); 
+            }
+
+            animate() {
+                if (!this.isAnimating) return;
+
+                ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                // Display remaining time
+                const elapsed = Date.now() - this.startTime;
+                const remaining = Math.max(0, this.simulationDuration - elapsed);
+                const seconds = Math.ceil(remaining / 1000);
+                
+                ctx.fillStyle = '#013369';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(`Time Left: ${seconds}s`, CANVAS_WIDTH - 10, 30);
+                
+                
+                // Filter out balls that have completely shrunk
+                this.balls = this.balls.filter(ball => ball.radius > 0);
+
+                for (let i = 0; i < this.balls.length; i++) {
+                    const ball1 = this.balls[i];
+                    ball1.update();
+                    ball1.draw();
+                    
+                    for (let j = i + 1; j < this.balls.length; j++) {
+                        const ball2 = this.balls[j];
+                        resolveCollision(ball1, ball2, this); 
+                    }
+                }
+                
+                // CRITICAL CHECK: Wait for elimination to complete before advancing round
+                if (this.roundActive && this.losersToEliminate.length === 0) {
+                    
+                    const shrinkingBalls = this.balls.filter(ball => ball.eliminated);
+                    
+                    if (shrinkingBalls.length === 0 || shrinkingBalls.every(ball => ball.radius <= 0.2)) {
+                        
+                        this.roundActive = false; // Pause animation logic for round management
+                        
+                        // If Super Bowl completed, let the timer handle the hard stop. Otherwise, advance.
+                        if (this.currentRoundIndex < 3) { 
+                            // Advance to the next round
+                            setTimeout(() => this.processNextRound(), this.eliminationDelay);
+                        }
+                    }
+                }
+
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+            
+            processNextRound() {
+                this.currentRoundIndex++;
+                
+                const afcRound = this.bracket.afc.rounds[this.currentRoundIndex];
+                const nfcRound = this.bracket.nfc.rounds[this.currentRoundIndex];
+                
+                if (afcRound && nfcRound) {
+                    const roundName = afcRound.name;
+                    this.updateStatus(`${roundName} - Teams are fighting for elimination via collision...`);
+
+                    const roundLoserIDs = [...afcRound.losers.map(l => l.id), ...nfcRound.losers.map(l => l.id)];
+
+                    this.losersToEliminate = roundLoserIDs;
+                    this.roundActive = true; 
+
+                    if (this.losersToEliminate.length === 0) {
+                        // If a round had only byes/only one game, move faster to the next round
+                        setTimeout(() => this.processNextRound(), 500); 
+                    }
+
+                } else if (this.currentRoundIndex === 3) {
+                    // Super Bowl Round
+                    this.updateStatus(`SUPER BOWL: Collision elimination for the loser...`);
+
+                    const loser = this.bracket.superBowl.loser;
+                    
+                    this.losersToEliminate = [loser.id];
+                    this.roundActive = true;
+                    
+                } else if (this.currentRoundIndex > 3) {
+                    // Simulation is complete, stop the loop after a small delay
+                     setTimeout(() => this.hardStopSimulation(), 1000); 
+                }
+            }
+        }
+        
+        // 5. MAIN EXECUTION FUNCTION
+
+        function runSimulation() {
+            // Disable button to prevent multiple runs
+            const button = document.getElementById('newSeasonButton');
+            button.disabled = true;
+
+            // Stop existing animation if running
+            if (simulator) {
+                simulator.stop();
+            }
+            document.getElementById('canvasStatus').textContent = "Selecting 14 teams and simulating results...";
+            document.getElementById('superBowlWinner').textContent = "... Awaiting Champion ...";
+
+            // 1. Select Playoffs (Randomized)
+            const afcPlayoffs = selectPlayoffTeams("AFC");
+            const nfcPlayoffs = selectPlayoffTeams("NFC");
+            const allPlayoffTeams = [...afcPlayoffs, ...nfcPlayoffs];
+
+            // 2. Simulate Conference Playoffs
+            const afcResult = simulateConferencePlayoffs(afcPlayoffs);
+            const nfcResult = simulateConferencePlayoffs(nfcPlayoffs);
+
+            const afcChampion = afcResult.champion;
+            const nfcChampion = nfcResult.champion;
+
+            // 3. Super Bowl
+            const superBowlResult = simulateGame(afcChampion, nfcChampion);
+            const superBowlWinner = superBowlResult.winner;
+            
+            // 4. Update Score and Display
+            trackChampion(superBowlWinner.name);
+            renderPlayoffTable(afcPlayoffs, nfcPlayoffs);
+            renderBracket(afcResult.rounds, nfcResult.rounds, superBowlWinner);
+
+            // 5. Run Visual Simulation (Collision-based Elimination)
+            const bracketResults = {
+                afc: afcResult,
+                nfc: nfcResult,
+                superBowl: superBowlResult
+            };
+            
+            simulator = new CanvasSimulator(allPlayoffTeams, bracketResults);
+            simulator.start();
+
+            // Re-enable button after the visual simulation finishes (handled by hardStopSimulation)
+            setTimeout(() => {
+                button.disabled = false;
+            }, simulator.simulationDuration + 3000); // 30s + 3s buffer
+        }
+
+        // INITIAL SETUP AND EVENT LISTENER
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load existing scores from storage if available
+            const savedChampions = localStorage.getItem('superBowlChampions');
+            const savedSeasons = localStorage.getItem('totalSeasons');
+
+            if (savedChampions) {
+                superBowlChampions = JSON.parse(savedChampions);
+            }
+            if (savedSeasons) {
+                totalSeasons = parseInt(savedSeasons);
+            }
+            
+            // Initial scoreboard render
+            renderScoreBoard();
+
+            // Preload all logos and update button status
+            const button = document.getElementById('newSeasonButton');
+            button.disabled = true;
+            button.textContent = "Loading Team Logos... (Please wait)";
+
+            preloadLogos().then(() => {
+                button.disabled = false;
+                button.textContent = "Start New Season & Playoff Visuals!";
+                document.getElementById('canvasStatus').textContent = "Logos loaded. Click 'Start New Season' to begin the simulation!";
+            }).catch(() => {
+                // Failsafe
+                button.disabled = false;
+                button.textContent = "Start New Season (Logos may be missing)";
+                document.getElementById('canvasStatus').textContent = "Warning: Some logos failed to load, but the simulation will run.";
+            });
+
+            // Attach click listener
+            button.addEventListener('click', runSimulation);
+        });
+    </script>
+</body>
+</html>
